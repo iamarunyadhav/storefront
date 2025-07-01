@@ -1,86 +1,51 @@
-<template>
-  <div class="bg-white">
-    <div class="mx-auto max-w-2xl px-4 py-16 sm:px-6 sm:py-24 lg:max-w-7xl lg:px-8">
-      <h2 class="text-2xl font-bold tracking-tight text-gray-900">Customers also purchased</h2>
+<script setup>
+import { onMounted, ref } from 'vue';
+import { apiClient } from '../api/axios';
+import { useCartStore } from '../stores/cart';
+import AddProduct from './AddProduct.vue';
 
-      <div class="mt-4s grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4 xl:gap-x-8">
-        <div v-for="product in products" :key="product.id" class="group relative">
-          <img :src="product.image" class="aspect-square w-full rounded-md bg-gray-200 object-cover group-hover:opacity-75 lg:aspect-auto lg:h-80" />
-          <div class="mt-4 flex justify-between">
-            <div>
-              <h3 class="text-sm text-gray-700">
-                <!-- <a :href="product."> -->
-                  <span aria-hidden="true" class="absolute inset-0" />
-                  {{ product.name }}
-                  <p class="text-sm font-medium text-gray-900">{{ product.stock }}</p>
-                <!-- </a> -->
-              </h3>
-              <p class="mt-1 text-sm text-gray-500">{{ product.description }}</p>
-            </div>
-            <p class="text-sm font-medium text-gray-900">{{ product.price }}</p>
-          </div>
-          <button
-            class="mt-2 text-sm text-white bg-indigo-600 px-4 py-2 rounded hover:bg-indigo-700"
-                    @click="addToCart(product)"
-                    >
-                Add to Cart
-            </button>
+const products = ref([]);
+const editingProduct = ref(null);
+const cartStore = useCartStore();
+
+const fetchProducts = async () => {
+  const response = await apiClient.get('/products');
+  products.value = response.data;
+};
+
+const addToCart = (product) => {
+  cartStore.addToCart(product);
+};
+
+const editProduct = (product) => {
+  editingProduct.value = { ...product };
+};
+
+const deleteProduct = async (id) => {
+  await apiClient.delete(`/products/${id}`);
+  fetchProducts();
+};
+
+onMounted(fetchProducts);
+</script>
+
+<template>
+  <div class="bg-white text-black min-h-screen p-6">
+    <h2 class="text-2xl font-bold mb-4">Product Catalog</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+      <div v-for="product in products" :key="product.id" class="border p-4 rounded shadow-md">
+        <img :src="product.image" alt="Product Image" class="w-full h-48 object-cover rounded mb-2" />
+        <h3 class="text-lg font-semibold">{{ product.name }}</h3>
+        <p class="text-gray-700">{{ product.description }}</p>
+        <p class="font-bold text-indigo-600">Rs. {{ product.price }}</p>
+        <p class="text-sm text-gray-500">Stock: {{ product.stock }}</p>
+        <div class="flex space-x-2 mt-3">
+          <button @click="addToCart(product)" class="bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700">Add to Cart</button>
+          <button @click="editProduct(product)" class="bg-yellow-500 text-white px-3 py-1 rounded">Edit</button>
+          <button @click="deleteProduct(product.id)" class="bg-red-500 text-white px-3 py-1 rounded">Delete</button>
         </div>
       </div>
     </div>
-
-    <ShoppingCart
-    :open="cartOpen"
-    :cart-items="cartItems"
-    @close="cartOpen = false"
-    />
-    <!-- <ProductList/> -->
+    <AddProduct :editingProduct="editingProduct" @refresh="fetchProducts" />
   </div>
-  
 </template>
-
-<script>
-// import axios from 'axios';
-import { apiClient } from '../api/axios'; // Adjust the import path as necessary
-import { ref, onMounted } from 'vue';
-import ProductList from './ProductList.vue';
-
-import ShoppingCart from './ShoppingCart.vue';
-
-export default {
-  components: { ShoppingCart },
-  setup() {
-    const products = ref([]);
-    const cartItems = ref([]);
-    const cartOpen = ref(false);
-
-    const fetchProducts = async () => {
-      const response = await apiClient.get('/products');
-      products.value = response.data;
-    };
-
-    const addToCart = (product) => {
-        console.log('Adding to cart:', product);
-    const exists = cartItems.value.find(p => p.id === product.id);
-    if (!exists) {
-        cartItems.value.push(product);
-    }
-    cartOpen.value = true;
-    };
-
-    onMounted(fetchProducts);
-
-    return {
-      products,
-      cartItems,
-      cartOpen,
-      addToCart
-    };
-  }
-}
-
-</script>
-
-<style scoped>
-
-</style>
